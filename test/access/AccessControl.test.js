@@ -1,13 +1,23 @@
+import { network } from 'hardhat';
+import { DEFAULT_ADMIN_ROLE, shouldBehaveLikeAccessControl } from './AccessControl.behavior';
+
+const connection = await network.create();
 const {
-  shouldBehaveLikeAccessControl,
-} = require('./AccessControl.behavior.js');
+  ethers,
+  networkHelpers: { loadFixture },
+} = connection;
 
-const AccessControlMock = artifacts.require('AccessControlMock');
+async function fixture() {
+  const [defaultAdmin, ...accounts] = await ethers.getSigners();
+  const mock = await ethers.deployContract('$AccessControl');
+  await mock.$_grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
+  return { mock, defaultAdmin, accounts };
+}
 
-contract('AccessControl', function (accounts) {
+describe('AccessControl', function () {
   beforeEach(async function () {
-    this.accessControl = await AccessControlMock.new({ from: accounts[0] });
+    Object.assign(this, connection, await loadFixture(fixture));
   });
 
-  shouldBehaveLikeAccessControl('AccessControl', ...accounts);
+  shouldBehaveLikeAccessControl();
 });

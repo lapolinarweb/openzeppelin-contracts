@@ -1,18 +1,27 @@
+import { network } from 'hardhat';
+import { shouldBehaveLikeERC721, shouldBehaveLikeERC721Metadata } from './ERC721.behavior';
+
+const connection = await network.create();
 const {
-  shouldBehaveLikeERC721,
-  shouldBehaveLikeERC721Metadata,
-} = require('./ERC721.behavior');
+  ethers,
+  networkHelpers: { loadFixture },
+} = connection;
 
-const ERC721Mock = artifacts.require('ERC721Mock');
+const name = 'Non Fungible Token';
+const symbol = 'NFT';
 
-contract('ERC721', function (accounts) {
-  const name = 'Non Fungible Token';
-  const symbol = 'NFT';
+async function fixture() {
+  return {
+    accounts: await ethers.getSigners(),
+    token: await ethers.deployContract('$ERC721', [name, symbol]),
+  };
+}
 
+describe('ERC721', function () {
   beforeEach(async function () {
-    this.token = await ERC721Mock.new(name, symbol);
+    Object.assign(this, connection, await loadFixture(fixture));
   });
 
-  shouldBehaveLikeERC721('ERC721', ...accounts);
-  shouldBehaveLikeERC721Metadata('ERC721', name, symbol, ...accounts);
+  shouldBehaveLikeERC721();
+  shouldBehaveLikeERC721Metadata(name, symbol);
 });

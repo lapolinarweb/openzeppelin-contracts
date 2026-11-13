@@ -1,46 +1,67 @@
-const { BN } = require('@openzeppelin/test-helpers');
+import { network } from 'hardhat';
+import { mapValues } from '../../helpers/iterate';
+import * as random from '../../helpers/random';
+import { SET_TYPES } from '../../../scripts/generate/data.js';
+import { shouldBehaveLikeSet } from './EnumerableSet.behavior';
 
-const EnumerableBytes32SetMock = artifacts.require('EnumerableBytes32SetMock');
-const EnumerableAddressSetMock = artifacts.require('EnumerableAddressSetMock');
-const EnumerableUintSetMock = artifacts.require('EnumerableUintSetMock');
+const {
+  ethers,
+  networkHelpers: { loadFixture },
+} = await network.create();
 
-const { shouldBehaveLikeSet } = require('./EnumerableSet.behavior');
+// Chai matchers expect hexadecimal data when dealing with bytes
+const randomOf = type => random[type === 'bytes' ? 'hexBytes' : type];
 
-contract('EnumerableSet', function (accounts) {
-  // Bytes32Set
-  describe('EnumerableBytes32Set', function () {
-    const bytesA = '0xdeadbeef'.padEnd(66, '0');
-    const bytesB = '0x0123456789'.padEnd(66, '0');
-    const bytesC = '0x42424242'.padEnd(66, '0');
+async function fixture() {
+  const mock = await ethers.deployContract('$EnumerableSet');
 
-    beforeEach(async function () {
-      this.set = await EnumerableBytes32SetMock.new();
-    });
+  const env = Object.fromEntries(
+    SET_TYPES.map(({ name, value }) => [
+      name,
+      {
+        value,
+        values: Array.from({ length: 3 }, randomOf(value.type)),
+        methods: mapValues(
+          {
+            add: `$add(uint256,${value.type})`,
+            remove: `$remove(uint256,${value.type})`,
+            removeAt: `$removeAt_EnumerableSet_${name}(uint256,uint256)`,
+            contains: `$contains(uint256,${value.type})`,
+            clear: `$clear_EnumerableSet_${name}(uint256)`,
+            length: `$length_EnumerableSet_${name}(uint256)`,
+            at: `$at_EnumerableSet_${name}(uint256,uint256)`,
+            values: `$values_EnumerableSet_${name}(uint256)`,
+            valuesPage: `$values_EnumerableSet_${name}(uint256,uint256,uint256)`,
+          },
+          fnSig =>
+            Object.assign((...args) => mock.getFunction(fnSig)(0, ...args), {
+              staticCall: (...args) => mock.getFunction(fnSig).staticCall(0, ...args),
+            }),
+        ),
+        events: {
+          addReturn: `return$add_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, '_')}`,
+          removeReturn: `return$remove_EnumerableSet_${name}_${value.type.replace(/[[\]]/g, '_')}`,
+        },
+      },
+    ]),
+  );
 
-    shouldBehaveLikeSet(bytesA, bytesB, bytesC);
+  return { mock, env };
+}
+
+describe('EnumerableSet', function () {
+  beforeEach(async function () {
+    Object.assign(this, await loadFixture(fixture));
   });
 
-  // AddressSet
-  describe('EnumerableAddressSet', function () {
-    const [accountA, accountB, accountC] = accounts;
+  for (const { name, value } of SET_TYPES) {
+    describe(`${name} (enumerable set of ${value.type})`, function () {
+      beforeEach(function () {
+        Object.assign(this, this.env[name]);
+        [this.valueA, this.valueB, this.valueC] = this.values;
+      });
 
-    beforeEach(async function () {
-      this.set = await EnumerableAddressSetMock.new();
+      shouldBehaveLikeSet();
     });
-
-    shouldBehaveLikeSet(accountA, accountB, accountC);
-  });
-
-  // UintSet
-  describe('EnumerableUintSet', function () {
-    const uintA = new BN('1234');
-    const uintB = new BN('5678');
-    const uintC = new BN('9101112');
-
-    beforeEach(async function () {
-      this.set = await EnumerableUintSetMock.new();
-    });
-
-    shouldBehaveLikeSet(uintA, uintB, uintC);
-  });
+  }
 });

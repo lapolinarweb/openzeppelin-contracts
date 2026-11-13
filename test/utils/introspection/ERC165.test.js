@@ -1,13 +1,19 @@
-const { shouldSupportInterfaces } = require('./SupportsInterface.behavior');
+import { network } from 'hardhat';
+import { shouldSupportInterfaces } from './SupportsInterface.behavior';
 
-const ERC165Mock = artifacts.require('ERC165Mock');
+const {
+  ethers,
+  networkHelpers: { loadFixture },
+} = await network.create();
 
-contract('ERC165', function (accounts) {
+async function fixture() {
+  return { mock: await ethers.deployContract('$ERC165') };
+}
+
+describe('ERC165', function () {
   beforeEach(async function () {
-    this.mock = await ERC165Mock.new();
+    Object.assign(this, await loadFixture(fixture));
   });
 
-  shouldSupportInterfaces([
-    'ERC165',
-  ]);
+  shouldSupportInterfaces();
 });

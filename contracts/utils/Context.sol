@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -11,6 +12,11 @@ pragma solidity ^0.8.0;
  * is concerned).
  *
  * This contract is only required for intermediate, library-like contracts.
+ *
+ * IMPORTANT: Deprecated in favor of accessing `msg.sender` and `msg.data` directly. This contract, along with its
+ * `_msgSender`, `_msgData` and `_contextSuffixLength` functions, will be removed in v6.0, where contracts read
+ * `msg.sender` and `msg.data` directly. Contracts that override `_msgSender`/`_msgData` (e.g. to support
+ * meta-transactions) will lose that extension point; plan the migration before upgrading.
  */
 abstract contract Context {
     function _msgSender() internal view virtual returns (address) {
@@ -19,5 +25,9 @@ abstract contract Context {
 
     function _msgData() internal view virtual returns (bytes calldata) {
         return msg.data;
+    }
+
+    function _contextSuffixLength() internal view virtual returns (uint256) {
+        return 0;
     }
 }
